@@ -3,8 +3,6 @@ package api
 import (
 	"time"
 
-	"github.com/brocaar/loraserver/internal/gps"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -17,6 +15,7 @@ import (
 	"github.com/brocaar/loraserver/internal/downlink/data/classb"
 	proprietarydown "github.com/brocaar/loraserver/internal/downlink/proprietary"
 	"github.com/brocaar/loraserver/internal/framelog"
+	"github.com/brocaar/loraserver/internal/gps"
 	"github.com/brocaar/loraserver/internal/storage"
 	"github.com/brocaar/lorawan"
 	"github.com/brocaar/lorawan/backend"
@@ -52,14 +51,18 @@ func NewNetworkServerAPI() *NetworkServerAPI {
 
 // CreateServiceProfile creates the given service-profile.
 func (n *NetworkServerAPI) CreateServiceProfile(ctx context.Context, req *ns.CreateServiceProfileRequest) (*ns.CreateServiceProfileResponse, error) {
+	if req.ServiceProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "service_profile must not be nil")
+	}
+
 	sp := storage.ServiceProfile{
 		ServiceProfile: backend.ServiceProfile{
-			ServiceProfileID:       req.ServiceProfile.ServiceProfileID,
+			ServiceProfileID:       req.ServiceProfile.Id,
 			ULRate:                 int(req.ServiceProfile.UlRate),
 			ULBucketSize:           int(req.ServiceProfile.UlBucketSize),
 			DLRate:                 int(req.ServiceProfile.DlRate),
 			DLBucketSize:           int(req.ServiceProfile.DlBucketSize),
-			AddGWMetadata:          req.ServiceProfile.AddGWMetadata,
+			AddGWMetadata:          req.ServiceProfile.AddGwMetadata,
 			DevStatusReqFreq:       int(req.ServiceProfile.DevStatusReqFreq),
 			ReportDevStatusBattery: req.ServiceProfile.ReportDevStatusBattery,
 			ReportDevStatusMargin:  req.ServiceProfile.ReportDevStatusMargin,
@@ -70,8 +73,8 @@ func (n *NetworkServerAPI) CreateServiceProfile(ctx context.Context, req *ns.Cre
 			HRAllowed:      req.ServiceProfile.HrAllowed,
 			RAAllowed:      req.ServiceProfile.RaAllowed,
 			NwkGeoLoc:      req.ServiceProfile.NwkGeoLoc,
-			TargetPER:      backend.Percentage(req.ServiceProfile.TargetPER),
-			MinGWDiversity: int(req.ServiceProfile.MinGWDiversity),
+			TargetPER:      backend.Percentage(req.ServiceProfile.TargetPer),
+			MinGWDiversity: int(req.ServiceProfile.MinGwDiversity),
 		},
 	}
 
@@ -94,13 +97,13 @@ func (n *NetworkServerAPI) CreateServiceProfile(ctx context.Context, req *ns.Cre
 	}
 
 	return &ns.CreateServiceProfileResponse{
-		ServiceProfileID: sp.ServiceProfile.ServiceProfileID,
+		Id: sp.ServiceProfile.ServiceProfileID,
 	}, nil
 }
 
 // GetServiceProfile returns the service-profile matching the given id.
 func (n *NetworkServerAPI) GetServiceProfile(ctx context.Context, req *ns.GetServiceProfileRequest) (*ns.GetServiceProfileResponse, error) {
-	sp, err := storage.GetServiceProfile(config.C.PostgreSQL.DB, req.ServiceProfileID)
+	sp, err := storage.GetServiceProfile(config.C.PostgreSQL.DB, req.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -109,12 +112,12 @@ func (n *NetworkServerAPI) GetServiceProfile(ctx context.Context, req *ns.GetSer
 		CreatedAt: sp.CreatedAt.Format(time.RFC3339Nano),
 		UpdatedAt: sp.UpdatedAt.Format(time.RFC3339Nano),
 		ServiceProfile: &ns.ServiceProfile{
-			ServiceProfileID:       sp.ServiceProfile.ServiceProfileID,
+			Id:                     sp.ServiceProfile.ServiceProfileID,
 			UlRate:                 uint32(sp.ServiceProfile.ULRate),
 			UlBucketSize:           uint32(sp.ServiceProfile.ULBucketSize),
 			DlRate:                 uint32(sp.ServiceProfile.DLRate),
 			DlBucketSize:           uint32(sp.ServiceProfile.DLBucketSize),
-			AddGWMetadata:          sp.ServiceProfile.AddGWMetadata,
+			AddGwMetadata:          sp.ServiceProfile.AddGWMetadata,
 			DevStatusReqFreq:       uint32(sp.ServiceProfile.DevStatusReqFreq),
 			ReportDevStatusBattery: sp.ServiceProfile.ReportDevStatusBattery,
 			ReportDevStatusMargin:  sp.ServiceProfile.ReportDevStatusMargin,
@@ -125,8 +128,8 @@ func (n *NetworkServerAPI) GetServiceProfile(ctx context.Context, req *ns.GetSer
 			HrAllowed:      sp.ServiceProfile.HRAllowed,
 			RaAllowed:      sp.ServiceProfile.RAAllowed,
 			NwkGeoLoc:      sp.ServiceProfile.NwkGeoLoc,
-			TargetPER:      uint32(sp.ServiceProfile.TargetPER),
-			MinGWDiversity: uint32(sp.ServiceProfile.MinGWDiversity),
+			TargetPer:      uint32(sp.ServiceProfile.TargetPER),
+			MinGwDiversity: uint32(sp.ServiceProfile.MinGWDiversity),
 		},
 	}
 
@@ -149,7 +152,11 @@ func (n *NetworkServerAPI) GetServiceProfile(ctx context.Context, req *ns.GetSer
 
 // UpdateServiceProfile updates the given service-profile.
 func (n *NetworkServerAPI) UpdateServiceProfile(ctx context.Context, req *ns.UpdateServiceProfileRequest) (*ns.UpdateServiceProfileResponse, error) {
-	sp, err := storage.GetServiceProfile(config.C.PostgreSQL.DB, req.ServiceProfile.ServiceProfileID)
+	if req.ServiceProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "service_profile must not be nil")
+	}
+
+	sp, err := storage.GetServiceProfile(config.C.PostgreSQL.DB, req.ServiceProfile.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -160,7 +167,7 @@ func (n *NetworkServerAPI) UpdateServiceProfile(ctx context.Context, req *ns.Upd
 		ULBucketSize:           int(req.ServiceProfile.UlBucketSize),
 		DLRate:                 int(req.ServiceProfile.DlRate),
 		DLBucketSize:           int(req.ServiceProfile.DlBucketSize),
-		AddGWMetadata:          req.ServiceProfile.AddGWMetadata,
+		AddGWMetadata:          req.ServiceProfile.AddGwMetadata,
 		DevStatusReqFreq:       int(req.ServiceProfile.DevStatusReqFreq),
 		ReportDevStatusBattery: req.ServiceProfile.ReportDevStatusBattery,
 		ReportDevStatusMargin:  req.ServiceProfile.ReportDevStatusMargin,
@@ -171,8 +178,8 @@ func (n *NetworkServerAPI) UpdateServiceProfile(ctx context.Context, req *ns.Upd
 		HRAllowed:      req.ServiceProfile.HrAllowed,
 		RAAllowed:      req.ServiceProfile.RaAllowed,
 		NwkGeoLoc:      req.ServiceProfile.NwkGeoLoc,
-		TargetPER:      backend.Percentage(req.ServiceProfile.TargetPER),
-		MinGWDiversity: int(req.ServiceProfile.MinGWDiversity),
+		TargetPER:      backend.Percentage(req.ServiceProfile.TargetPer),
+		MinGWDiversity: int(req.ServiceProfile.MinGwDiversity),
 	}
 
 	switch req.ServiceProfile.UlRatePolicy {
@@ -202,11 +209,11 @@ func (n *NetworkServerAPI) UpdateServiceProfile(ctx context.Context, req *ns.Upd
 
 // DeleteServiceProfile deletes the service-profile matching the given id.
 func (n *NetworkServerAPI) DeleteServiceProfile(ctx context.Context, req *ns.DeleteServiceProfileRequest) (*ns.DeleteServiceProfileResponse, error) {
-	if err := storage.FlushServiceProfileCache(config.C.Redis.Pool, req.ServiceProfileID); err != nil {
+	if err := storage.FlushServiceProfileCache(config.C.Redis.Pool, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
-	if err := storage.DeleteServiceProfile(config.C.PostgreSQL.DB, req.ServiceProfileID); err != nil {
+	if err := storage.DeleteServiceProfile(config.C.PostgreSQL.DB, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
@@ -215,27 +222,31 @@ func (n *NetworkServerAPI) DeleteServiceProfile(ctx context.Context, req *ns.Del
 
 // CreateRoutingProfile creates the given routing-profile.
 func (n *NetworkServerAPI) CreateRoutingProfile(ctx context.Context, req *ns.CreateRoutingProfileRequest) (*ns.CreateRoutingProfileResponse, error) {
+	if req.RoutingProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "routing_profile must not be nil")
+	}
+
 	rp := storage.RoutingProfile{
 		RoutingProfile: backend.RoutingProfile{
-			RoutingProfileID: req.RoutingProfile.RoutingProfileID,
-			ASID:             req.RoutingProfile.AsID,
+			RoutingProfileID: req.RoutingProfile.Id,
+			ASID:             req.RoutingProfile.AsId,
 		},
-		CACert:  req.CaCert,
-		TLSCert: req.TlsCert,
-		TLSKey:  req.TlsKey,
+		CACert:  req.RoutingProfile.CaCert,
+		TLSCert: req.RoutingProfile.TlsCert,
+		TLSKey:  req.RoutingProfile.TlsKey,
 	}
 	if err := storage.CreateRoutingProfile(config.C.PostgreSQL.DB, &rp); err != nil {
 		return nil, errToRPCError(err)
 	}
 
 	return &ns.CreateRoutingProfileResponse{
-		RoutingProfileID: rp.RoutingProfile.RoutingProfileID,
+		Id: rp.RoutingProfile.RoutingProfileID,
 	}, nil
 }
 
 // GetRoutingProfile returns the routing-profile matching the given id.
 func (n *NetworkServerAPI) GetRoutingProfile(ctx context.Context, req *ns.GetRoutingProfileRequest) (*ns.GetRoutingProfileResponse, error) {
-	rp, err := storage.GetRoutingProfile(config.C.PostgreSQL.DB, req.RoutingProfileID)
+	rp, err := storage.GetRoutingProfile(config.C.PostgreSQL.DB, req.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -244,29 +255,33 @@ func (n *NetworkServerAPI) GetRoutingProfile(ctx context.Context, req *ns.GetRou
 		CreatedAt: rp.CreatedAt.Format(time.RFC3339Nano),
 		UpdatedAt: rp.UpdatedAt.Format(time.RFC3339Nano),
 		RoutingProfile: &ns.RoutingProfile{
-			AsID: rp.RoutingProfile.ASID,
+			AsId:    rp.RoutingProfile.ASID,
+			CaCert:  rp.CACert,
+			TlsCert: rp.TLSCert,
 		},
-		CaCert:  rp.CACert,
-		TlsCert: rp.TLSCert,
 	}, nil
 }
 
 // UpdateRoutingProfile updates the given routing-profile.
 func (n *NetworkServerAPI) UpdateRoutingProfile(ctx context.Context, req *ns.UpdateRoutingProfileRequest) (*ns.UpdateRoutingProfileResponse, error) {
-	rp, err := storage.GetRoutingProfile(config.C.PostgreSQL.DB, req.RoutingProfile.RoutingProfileID)
+	if req.RoutingProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "routing_profile must not be nil")
+	}
+
+	rp, err := storage.GetRoutingProfile(config.C.PostgreSQL.DB, req.RoutingProfile.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
 
 	rp.RoutingProfile = backend.RoutingProfile{
 		RoutingProfileID: rp.RoutingProfile.RoutingProfileID,
-		ASID:             req.RoutingProfile.AsID,
+		ASID:             req.RoutingProfile.AsId,
 	}
-	rp.CACert = req.CaCert
-	rp.TLSCert = req.TlsCert
+	rp.CACert = req.RoutingProfile.CaCert
+	rp.TLSCert = req.RoutingProfile.TlsCert
 
-	if req.TlsKey != "" {
-		rp.TLSKey = req.TlsKey
+	if req.RoutingProfile.TlsKey != "" {
+		rp.TLSKey = req.RoutingProfile.TlsKey
 	}
 
 	if rp.TLSCert == "" {
@@ -282,7 +297,7 @@ func (n *NetworkServerAPI) UpdateRoutingProfile(ctx context.Context, req *ns.Upd
 
 // DeleteRoutingProfile deletes the routing-profile matching the given id.
 func (n *NetworkServerAPI) DeleteRoutingProfile(ctx context.Context, req *ns.DeleteRoutingProfileRequest) (*ns.DeleteRoutingProfileResponse, error) {
-	if err := storage.DeleteRoutingProfile(config.C.PostgreSQL.DB, req.RoutingProfileID); err != nil {
+	if err := storage.DeleteRoutingProfile(config.C.PostgreSQL.DB, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
@@ -292,6 +307,10 @@ func (n *NetworkServerAPI) DeleteRoutingProfile(ctx context.Context, req *ns.Del
 // CreateDeviceProfile creates the given device-profile.
 // The RFRegion field will get set automatically according to the configured band.
 func (n *NetworkServerAPI) CreateDeviceProfile(ctx context.Context, req *ns.CreateDeviceProfileRequest) (*ns.CreateDeviceProfileResponse, error) {
+	if req.DeviceProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "device_profile must not be nil")
+	}
+
 	var factoryPresetFreqs []backend.Frequency
 	for _, f := range req.DeviceProfile.FactoryPresetFreqs {
 		factoryPresetFreqs = append(factoryPresetFreqs, backend.Frequency(f))
@@ -299,25 +318,25 @@ func (n *NetworkServerAPI) CreateDeviceProfile(ctx context.Context, req *ns.Crea
 
 	dp := storage.DeviceProfile{
 		DeviceProfile: backend.DeviceProfile{
-			DeviceProfileID:    req.DeviceProfile.DeviceProfileID,
+			DeviceProfileID:    req.DeviceProfile.Id,
 			SupportsClassB:     req.DeviceProfile.SupportsClassB,
 			ClassBTimeout:      int(req.DeviceProfile.ClassBTimeout),
 			PingSlotPeriod:     int(req.DeviceProfile.PingSlotPeriod),
-			PingSlotDR:         int(req.DeviceProfile.PingSlotDR),
+			PingSlotDR:         int(req.DeviceProfile.PingSlotDr),
 			PingSlotFreq:       backend.Frequency(req.DeviceProfile.PingSlotFreq),
 			SupportsClassC:     req.DeviceProfile.SupportsClassC,
 			ClassCTimeout:      int(req.DeviceProfile.ClassCTimeout),
 			MACVersion:         req.DeviceProfile.MacVersion,
 			RegParamsRevision:  req.DeviceProfile.RegParamsRevision,
-			RXDelay1:           int(req.DeviceProfile.RxDelay1),
-			RXDROffset1:        int(req.DeviceProfile.RxDROffset1),
-			RXDataRate2:        int(req.DeviceProfile.RxDataRate2),
-			RXFreq2:            backend.Frequency(req.DeviceProfile.RxFreq2),
+			RXDelay1:           int(req.DeviceProfile.RxDelay_1),
+			RXDROffset1:        int(req.DeviceProfile.RxDrOffset_1),
+			RXDataRate2:        int(req.DeviceProfile.RxDatarate_2),
+			RXFreq2:            backend.Frequency(req.DeviceProfile.RxFreq_2),
 			FactoryPresetFreqs: factoryPresetFreqs,
-			MaxEIRP:            int(req.DeviceProfile.MaxEIRP),
+			MaxEIRP:            int(req.DeviceProfile.MaxEirp),
 			MaxDutyCycle:       backend.Percentage(req.DeviceProfile.MaxDutyCycle),
 			SupportsJoin:       req.DeviceProfile.SupportsJoin,
-			Supports32bitFCnt:  req.DeviceProfile.Supports32BitFCnt,
+			Supports32bitFCnt:  req.DeviceProfile.Supports_32BitFCnt,
 		},
 	}
 
@@ -336,13 +355,13 @@ func (n *NetworkServerAPI) CreateDeviceProfile(ctx context.Context, req *ns.Crea
 	}
 
 	return &ns.CreateDeviceProfileResponse{
-		DeviceProfileID: dp.DeviceProfile.DeviceProfileID,
+		Id: dp.DeviceProfile.DeviceProfileID,
 	}, nil
 }
 
 // GetDeviceProfile returns the device-profile matching the given id.
 func (n *NetworkServerAPI) GetDeviceProfile(ctx context.Context, req *ns.GetDeviceProfileRequest) (*ns.GetDeviceProfileResponse, error) {
-	dp, err := storage.GetDeviceProfile(config.C.PostgreSQL.DB, req.DeviceProfileID)
+	dp, err := storage.GetDeviceProfile(config.C.PostgreSQL.DB, req.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -359,22 +378,22 @@ func (n *NetworkServerAPI) GetDeviceProfile(ctx context.Context, req *ns.GetDevi
 			SupportsClassB:     dp.DeviceProfile.SupportsClassB,
 			ClassBTimeout:      uint32(dp.DeviceProfile.ClassBTimeout),
 			PingSlotPeriod:     uint32(dp.DeviceProfile.PingSlotPeriod),
-			PingSlotDR:         uint32(dp.DeviceProfile.PingSlotDR),
+			PingSlotDr:         uint32(dp.DeviceProfile.PingSlotDR),
 			PingSlotFreq:       uint32(dp.DeviceProfile.PingSlotFreq),
 			SupportsClassC:     dp.DeviceProfile.SupportsClassC,
 			ClassCTimeout:      uint32(dp.DeviceProfile.ClassCTimeout),
 			MacVersion:         dp.DeviceProfile.MACVersion,
 			RegParamsRevision:  dp.DeviceProfile.RegParamsRevision,
-			RxDelay1:           uint32(dp.DeviceProfile.RXDelay1),
-			RxDROffset1:        uint32(dp.DeviceProfile.RXDROffset1),
-			RxDataRate2:        uint32(dp.DeviceProfile.RXDataRate2),
-			RxFreq2:            uint32(dp.DeviceProfile.RXFreq2),
+			RxDelay_1:          uint32(dp.DeviceProfile.RXDelay1),
+			RxDrOffset_1:       uint32(dp.DeviceProfile.RXDROffset1),
+			RxDatarate_2:       uint32(dp.DeviceProfile.RXDataRate2),
+			RxFreq_2:           uint32(dp.DeviceProfile.RXFreq2),
 			FactoryPresetFreqs: factoryPresetFreqs,
-			MaxEIRP:            uint32(dp.DeviceProfile.MaxEIRP),
+			MaxEirp:            uint32(dp.DeviceProfile.MaxEIRP),
 			MaxDutyCycle:       uint32(dp.DeviceProfile.MaxDutyCycle),
 			SupportsJoin:       dp.DeviceProfile.SupportsJoin,
 			RfRegion:           string(dp.DeviceProfile.RFRegion),
-			Supports32BitFCnt:  dp.DeviceProfile.Supports32bitFCnt,
+			Supports_32BitFCnt: dp.DeviceProfile.Supports32bitFCnt,
 		},
 	}
 
@@ -384,7 +403,11 @@ func (n *NetworkServerAPI) GetDeviceProfile(ctx context.Context, req *ns.GetDevi
 // UpdateDeviceProfile updates the given device-profile.
 // The RFRegion field will get set automatically according to the configured band.
 func (n *NetworkServerAPI) UpdateDeviceProfile(ctx context.Context, req *ns.UpdateDeviceProfileRequest) (*ns.UpdateDeviceProfileResponse, error) {
-	dp, err := storage.GetDeviceProfile(config.C.PostgreSQL.DB, req.DeviceProfile.DeviceProfileID)
+	if req.DeviceProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "device_profile must not be nil")
+	}
+
+	dp, err := storage.GetDeviceProfile(config.C.PostgreSQL.DB, req.DeviceProfile.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -399,21 +422,21 @@ func (n *NetworkServerAPI) UpdateDeviceProfile(ctx context.Context, req *ns.Upda
 		SupportsClassB:     req.DeviceProfile.SupportsClassB,
 		ClassBTimeout:      int(req.DeviceProfile.ClassBTimeout),
 		PingSlotPeriod:     int(req.DeviceProfile.PingSlotPeriod),
-		PingSlotDR:         int(req.DeviceProfile.PingSlotDR),
+		PingSlotDR:         int(req.DeviceProfile.PingSlotDr),
 		PingSlotFreq:       backend.Frequency(req.DeviceProfile.PingSlotFreq),
 		SupportsClassC:     req.DeviceProfile.SupportsClassC,
 		ClassCTimeout:      int(req.DeviceProfile.ClassCTimeout),
 		MACVersion:         req.DeviceProfile.MacVersion,
 		RegParamsRevision:  req.DeviceProfile.RegParamsRevision,
-		RXDelay1:           int(req.DeviceProfile.RxDelay1),
-		RXDROffset1:        int(req.DeviceProfile.RxDROffset1),
-		RXDataRate2:        int(req.DeviceProfile.RxDataRate2),
-		RXFreq2:            backend.Frequency(req.DeviceProfile.RxFreq2),
+		RXDelay1:           int(req.DeviceProfile.RxDelay_1),
+		RXDROffset1:        int(req.DeviceProfile.RxDrOffset_1),
+		RXDataRate2:        int(req.DeviceProfile.RxDatarate_2),
+		RXFreq2:            backend.Frequency(req.DeviceProfile.RxFreq_2),
 		FactoryPresetFreqs: factoryPresetFreqs,
-		MaxEIRP:            int(req.DeviceProfile.MaxEIRP),
+		MaxEIRP:            int(req.DeviceProfile.MaxEirp),
 		MaxDutyCycle:       backend.Percentage(req.DeviceProfile.MaxDutyCycle),
 		SupportsJoin:       req.DeviceProfile.SupportsJoin,
-		Supports32bitFCnt:  req.DeviceProfile.Supports32BitFCnt,
+		Supports32bitFCnt:  req.DeviceProfile.Supports_32BitFCnt,
 	}
 
 	var ok bool
@@ -439,11 +462,11 @@ func (n *NetworkServerAPI) UpdateDeviceProfile(ctx context.Context, req *ns.Upda
 
 // DeleteDeviceProfile deletes the device-profile matching the given id.
 func (n *NetworkServerAPI) DeleteDeviceProfile(ctx context.Context, req *ns.DeleteDeviceProfileRequest) (*ns.DeleteDeviceProfileResponse, error) {
-	if err := storage.FlushDeviceProfileCache(config.C.Redis.Pool, req.DeviceProfileID); err != nil {
+	if err := storage.FlushDeviceProfileCache(config.C.Redis.Pool, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
-	if err := storage.DeleteDeviceProfile(config.C.PostgreSQL.DB, req.DeviceProfileID); err != nil {
+	if err := storage.DeleteDeviceProfile(config.C.PostgreSQL.DB, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
@@ -452,14 +475,18 @@ func (n *NetworkServerAPI) DeleteDeviceProfile(ctx context.Context, req *ns.Dele
 
 // CreateDevice creates the given device.
 func (n *NetworkServerAPI) CreateDevice(ctx context.Context, req *ns.CreateDeviceRequest) (*ns.CreateDeviceResponse, error) {
+	if req.Device == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "device must not be nil")
+	}
+
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.Device.DevEUI)
+	copy(devEUI[:], req.Device.DevEui)
 
 	d := storage.Device{
 		DevEUI:           devEUI,
-		DeviceProfileID:  req.Device.DeviceProfileID,
-		ServiceProfileID: req.Device.ServiceProfileID,
-		RoutingProfileID: req.Device.RoutingProfileID,
+		DeviceProfileID:  req.Device.DeviceProfileId,
+		ServiceProfileID: req.Device.ServiceProfileId,
+		RoutingProfileID: req.Device.RoutingProfileId,
 		SkipFCntCheck:    req.Device.SkipFCntCheck,
 	}
 	if err := storage.CreateDevice(config.C.PostgreSQL.DB, &d); err != nil {
@@ -472,7 +499,7 @@ func (n *NetworkServerAPI) CreateDevice(ctx context.Context, req *ns.CreateDevic
 // GetDevice returns the device matching the given DevEUI.
 func (n *NetworkServerAPI) GetDevice(ctx context.Context, req *ns.GetDeviceRequest) (*ns.GetDeviceResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	d, err := storage.GetDevice(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
@@ -483,10 +510,10 @@ func (n *NetworkServerAPI) GetDevice(ctx context.Context, req *ns.GetDeviceReque
 		CreatedAt: d.CreatedAt.Format(time.RFC3339Nano),
 		UpdatedAt: d.UpdatedAt.Format(time.RFC3339Nano),
 		Device: &ns.Device{
-			DevEUI:           d.DevEUI[:],
-			DeviceProfileID:  d.DeviceProfileID,
-			ServiceProfileID: d.ServiceProfileID,
-			RoutingProfileID: d.RoutingProfileID,
+			DevEui:           d.DevEUI[:],
+			DeviceProfileId:  d.DeviceProfileID,
+			ServiceProfileId: d.ServiceProfileID,
+			RoutingProfileId: d.RoutingProfileID,
 			SkipFCntCheck:    d.SkipFCntCheck,
 		},
 	}, nil
@@ -494,17 +521,21 @@ func (n *NetworkServerAPI) GetDevice(ctx context.Context, req *ns.GetDeviceReque
 
 // UpdateDevice updates the given device.
 func (n *NetworkServerAPI) UpdateDevice(ctx context.Context, req *ns.UpdateDeviceRequest) (*ns.UpdateDeviceResponse, error) {
+	if req.Device == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "device must not be nil")
+	}
+
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.Device.DevEUI)
+	copy(devEUI[:], req.Device.DevEui)
 
 	d, err := storage.GetDevice(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
 
-	d.DeviceProfileID = req.Device.DeviceProfileID
-	d.ServiceProfileID = req.Device.ServiceProfileID
-	d.RoutingProfileID = req.Device.RoutingProfileID
+	d.DeviceProfileID = req.Device.DeviceProfileId
+	d.ServiceProfileID = req.Device.ServiceProfileId
+	d.RoutingProfileID = req.Device.RoutingProfileId
 	d.SkipFCntCheck = req.Device.SkipFCntCheck
 
 	if err := storage.UpdateDevice(config.C.PostgreSQL.DB, &d); err != nil {
@@ -517,7 +548,7 @@ func (n *NetworkServerAPI) UpdateDevice(ctx context.Context, req *ns.UpdateDevic
 // DeleteDevice deletes the device matching the given DevEUI.
 func (n *NetworkServerAPI) DeleteDevice(ctx context.Context, req *ns.DeleteDeviceRequest) (*ns.DeleteDeviceResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	err := storage.Transaction(config.C.PostgreSQL.DB, func(tx sqlx.Ext) error {
 		if err := storage.DeleteDevice(tx, devEUI); err != nil {
@@ -539,17 +570,21 @@ func (n *NetworkServerAPI) DeleteDevice(ctx context.Context, req *ns.DeleteDevic
 
 // ActivateDevice activates a device (ABP).
 func (n *NetworkServerAPI) ActivateDevice(ctx context.Context, req *ns.ActivateDeviceRequest) (*ns.ActivateDeviceResponse, error) {
+	if req.DeviceActivation == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "device_activation must not be nil")
+	}
+
 	var devEUI lorawan.EUI64
 	var devAddr lorawan.DevAddr
 	var fNwkSIntKey lorawan.AES128Key
 	var sNwkSIntKey lorawan.AES128Key
 	var nwkSEncKey lorawan.AES128Key
 
-	copy(devEUI[:], req.DevEUI)
-	copy(devAddr[:], req.DevAddr)
-	copy(fNwkSIntKey[:], req.FNwkSIntKey)
-	copy(sNwkSIntKey[:], req.SNwkSIntKey)
-	copy(nwkSEncKey[:], req.NwkSEncKey)
+	copy(devEUI[:], req.DeviceActivation.DevEui)
+	copy(devAddr[:], req.DeviceActivation.DevAddr)
+	copy(fNwkSIntKey[:], req.DeviceActivation.FNwkSIntKey)
+	copy(sNwkSIntKey[:], req.DeviceActivation.SNwkSIntKey)
+	copy(nwkSEncKey[:], req.DeviceActivation.NwkSEncKey)
 
 	d, err := storage.GetDevice(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
@@ -576,10 +611,10 @@ func (n *NetworkServerAPI) ActivateDevice(ctx context.Context, req *ns.ActivateD
 		SNwkSIntKey:        sNwkSIntKey,
 		FNwkSIntKey:        fNwkSIntKey,
 		NwkSEncKey:         nwkSEncKey,
-		FCntUp:             req.FCntUp,
-		NFCntDown:          req.NFCntDown,
-		AFCntDown:          req.AFCntDown,
-		SkipFCntValidation: req.SkipFCntCheck || d.SkipFCntCheck,
+		FCntUp:             req.DeviceActivation.FCntUp,
+		NFCntDown:          req.DeviceActivation.NFCntDown,
+		AFCntDown:          req.DeviceActivation.AFCntDown,
+		SkipFCntValidation: req.DeviceActivation.SkipFCntCheck || d.SkipFCntCheck,
 
 		RXWindow:       storage.RX1,
 		MaxSupportedDR: sp.ServiceProfile.DRMax,
@@ -611,7 +646,7 @@ func (n *NetworkServerAPI) ActivateDevice(ctx context.Context, req *ns.ActivateD
 // DeactivateDevice de-activates a device.
 func (n *NetworkServerAPI) DeactivateDevice(ctx context.Context, req *ns.DeactivateDeviceRequest) (*ns.DeactivateDeviceResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	if err := storage.DeleteDeviceSession(config.C.Redis.Pool, devEUI); err != nil {
 		return nil, errToRPCError(err)
@@ -627,7 +662,7 @@ func (n *NetworkServerAPI) DeactivateDevice(ctx context.Context, req *ns.Deactiv
 // GetDeviceActivation returns the device activation details.
 func (n *NetworkServerAPI) GetDeviceActivation(ctx context.Context, req *ns.GetDeviceActivationRequest) (*ns.GetDeviceActivationResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	ds, err := storage.GetDeviceSession(config.C.Redis.Pool, devEUI)
 	if err != nil {
@@ -635,14 +670,17 @@ func (n *NetworkServerAPI) GetDeviceActivation(ctx context.Context, req *ns.GetD
 	}
 
 	return &ns.GetDeviceActivationResponse{
-		DevAddr:       ds.DevAddr[:],
-		SNwkSIntKey:   ds.SNwkSIntKey[:],
-		FNwkSIntKey:   ds.FNwkSIntKey[:],
-		NwkSEncKey:    ds.NwkSEncKey[:],
-		FCntUp:        ds.FCntUp,
-		NFCntDown:     ds.NFCntDown,
-		AFCntDown:     ds.AFCntDown,
-		SkipFCntCheck: ds.SkipFCntValidation,
+		DeviceActivation: &ns.DeviceActivation{
+			DevEui:        ds.DevEUI[:],
+			DevAddr:       ds.DevAddr[:],
+			SNwkSIntKey:   ds.SNwkSIntKey[:],
+			FNwkSIntKey:   ds.FNwkSIntKey[:],
+			NwkSEncKey:    ds.NwkSEncKey[:],
+			FCntUp:        ds.FCntUp,
+			NFCntDown:     ds.NFCntDown,
+			AFCntDown:     ds.AFCntDown,
+			SkipFCntCheck: ds.SkipFCntValidation,
+		},
 	}, nil
 }
 
@@ -664,7 +702,7 @@ func (n *NetworkServerAPI) CreateMACCommandQueueItem(ctx context.Context, req *n
 	var commands []lorawan.MACCommand
 	var devEUI lorawan.EUI64
 
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	for _, b := range req.Commands {
 		var mac lorawan.MACCommand
@@ -693,13 +731,13 @@ func (n *NetworkServerAPI) SendProprietaryPayload(ctx context.Context, req *ns.S
 	var gwMACs []lorawan.EUI64
 
 	copy(mic[:], req.Mic)
-	for i := range req.GatewayMACs {
+	for i := range req.GatewayMacs {
 		var mac lorawan.EUI64
-		copy(mac[:], req.GatewayMACs[i])
+		copy(mac[:], req.GatewayMacs[i])
 		gwMACs = append(gwMACs, mac)
 	}
 
-	err := proprietarydown.Handle(req.MacPayload, mic, gwMACs, req.IPol, int(req.Frequency), int(req.Dr))
+	err := proprietarydown.Handle(req.MacPayload, mic, gwMACs, req.PolarizationInversion, int(req.Frequency), int(req.Dr))
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -709,21 +747,25 @@ func (n *NetworkServerAPI) SendProprietaryPayload(ctx context.Context, req *ns.S
 
 // CreateGateway creates the given gateway.
 func (n *NetworkServerAPI) CreateGateway(ctx context.Context, req *ns.CreateGatewayRequest) (*ns.CreateGatewayResponse, error) {
+	if req.Gateway == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "gateway must not be nil")
+	}
+
 	var mac lorawan.EUI64
-	copy(mac[:], req.Mac)
+	copy(mac[:], req.Gateway.Mac)
 
 	gw := storage.Gateway{
 		MAC:         mac,
-		Name:        req.Name,
-		Description: req.Description,
+		Name:        req.Gateway.Name,
+		Description: req.Gateway.Description,
 		Location: storage.GPSPoint{
-			Latitude:  req.Latitude,
-			Longitude: req.Longitude,
+			Latitude:  req.Gateway.Latitude,
+			Longitude: req.Gateway.Longitude,
 		},
-		Altitude: req.Altitude,
+		Altitude: req.Gateway.Altitude,
 	}
-	if req.GatewayProfileID != "" {
-		gw.GatewayProfileID = &req.GatewayProfileID
+	if req.Gateway.GatewayProfileId != "" {
+		gw.GatewayProfileID = &req.Gateway.GatewayProfileId
 	}
 
 	err := storage.CreateGateway(config.C.PostgreSQL.DB, &gw)
@@ -749,27 +791,31 @@ func (n *NetworkServerAPI) GetGateway(ctx context.Context, req *ns.GetGatewayReq
 
 // UpdateGateway updates an existing gateway.
 func (n *NetworkServerAPI) UpdateGateway(ctx context.Context, req *ns.UpdateGatewayRequest) (*ns.UpdateGatewayResponse, error) {
+	if req.Gateway == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "gateway must not be nil")
+	}
+
 	var mac lorawan.EUI64
-	copy(mac[:], req.Mac)
+	copy(mac[:], req.Gateway.Mac)
 
 	gw, err := storage.GetGateway(config.C.PostgreSQL.DB, mac)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
 
-	if req.GatewayProfileID != "" {
-		gw.GatewayProfileID = &req.GatewayProfileID
+	if req.Gateway.GatewayProfileId != "" {
+		gw.GatewayProfileID = &req.Gateway.GatewayProfileId
 	} else {
 		gw.GatewayProfileID = nil
 	}
 
-	gw.Name = req.Name
-	gw.Description = req.Description
+	gw.Name = req.Gateway.Name
+	gw.Description = req.Gateway.Description
 	gw.Location = storage.GPSPoint{
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
+		Latitude:  req.Gateway.Latitude,
+		Longitude: req.Gateway.Longitude,
 	}
-	gw.Altitude = req.Altitude
+	gw.Altitude = req.Gateway.Altitude
 
 	err = storage.UpdateGateway(config.C.PostgreSQL.DB, &gw)
 	if err != nil {
@@ -818,7 +864,7 @@ func (n *NetworkServerAPI) GetGatewayStats(ctx context.Context, req *ns.GetGatew
 		resp.Result = append(resp.Result, &ns.GatewayStats{
 			Timestamp:           stat.Timestamp.Format(time.RFC3339Nano),
 			RxPacketsReceived:   int32(stat.RXPacketsReceived),
-			RxPacketsReceivedOK: int32(stat.RXPacketsReceivedOK),
+			RxPacketsReceivedOk: int32(stat.RXPacketsReceivedOK),
 			TxPacketsReceived:   int32(stat.TXPacketsReceived),
 			TxPacketsEmitted:    int32(stat.TXPacketsEmitted),
 		})
@@ -828,7 +874,7 @@ func (n *NetworkServerAPI) GetGatewayStats(ctx context.Context, req *ns.GetGatew
 }
 
 // StreamFrameLogsForGateway returns a stream of frames seen by the given gateway.
-func (n *NetworkServerAPI) StreamFrameLogsForGateway(req *ns.StreamFrameLogsForGatewayRequest, srv ns.NetworkServer_StreamFrameLogsForGatewayServer) error {
+func (n *NetworkServerAPI) StreamFrameLogsForGateway(req *ns.StreamFrameLogsForGatewayRequest, srv ns.NetworkServerService_StreamFrameLogsForGatewayServer) error {
 	var mac lorawan.EUI64
 	copy(mac[:], req.Mac)
 
@@ -867,9 +913,9 @@ func (n *NetworkServerAPI) StreamFrameLogsForGateway(req *ns.StreamFrameLogsForG
 }
 
 // StreamFrameLogsForDevice returns a stream of frames seen by the given device.
-func (n *NetworkServerAPI) StreamFrameLogsForDevice(req *ns.StreamFrameLogsForDeviceRequest, srv ns.NetworkServer_StreamFrameLogsForDeviceServer) error {
+func (n *NetworkServerAPI) StreamFrameLogsForDevice(req *ns.StreamFrameLogsForDeviceRequest, srv ns.NetworkServerService_StreamFrameLogsForDeviceServer) error {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	frameLogChan := make(chan framelog.FrameLog)
 
@@ -907,8 +953,12 @@ func (n *NetworkServerAPI) StreamFrameLogsForDevice(req *ns.StreamFrameLogsForDe
 
 // CreateGatewayProfile creates the given gateway-profile.
 func (n *NetworkServerAPI) CreateGatewayProfile(ctx context.Context, req *ns.CreateGatewayProfileRequest) (*ns.CreateGatewayProfileResponse, error) {
+	if req.GatewayProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "gateway_profile must not be nil")
+	}
+
 	gc := storage.GatewayProfile{
-		GatewayProfileID: req.GatewayProfile.GatewayProfileID,
+		GatewayProfileID: req.GatewayProfile.Id,
 	}
 
 	for _, c := range req.GatewayProfile.Channels {
@@ -943,12 +993,12 @@ func (n *NetworkServerAPI) CreateGatewayProfile(ctx context.Context, req *ns.Cre
 		return nil, errToRPCError(err)
 	}
 
-	return &ns.CreateGatewayProfileResponse{GatewayProfileID: gc.GatewayProfileID}, nil
+	return &ns.CreateGatewayProfileResponse{Id: gc.GatewayProfileID}, nil
 }
 
 // GetGatewayProfile returns the gateway-profile given an id.
 func (n *NetworkServerAPI) GetGatewayProfile(ctx context.Context, req *ns.GetGatewayProfileRequest) (*ns.GetGatewayProfileResponse, error) {
-	gc, err := storage.GetGatewayProfile(config.C.PostgreSQL.DB, req.GatewayProfileID)
+	gc, err := storage.GetGatewayProfile(config.C.PostgreSQL.DB, req.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -957,7 +1007,7 @@ func (n *NetworkServerAPI) GetGatewayProfile(ctx context.Context, req *ns.GetGat
 		CreatedAt: gc.CreatedAt.Format(time.RFC3339Nano),
 		UpdatedAt: gc.UpdatedAt.Format(time.RFC3339Nano),
 		GatewayProfile: &ns.GatewayProfile{
-			GatewayProfileID: gc.GatewayProfileID,
+			Id: gc.GatewayProfileID,
 		},
 	}
 
@@ -991,7 +1041,11 @@ func (n *NetworkServerAPI) GetGatewayProfile(ctx context.Context, req *ns.GetGat
 
 // UpdateGatewayProfile updates the given gateway-profile.
 func (n *NetworkServerAPI) UpdateGatewayProfile(ctx context.Context, req *ns.UpdateGatewayProfileRequest) (*ns.UpdateGatewayProfileResponse, error) {
-	gc, err := storage.GetGatewayProfile(config.C.PostgreSQL.DB, req.GatewayProfile.GatewayProfileID)
+	if req.GatewayProfile == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "gateway_profile must not be nil")
+	}
+
+	gc, err := storage.GetGatewayProfile(config.C.PostgreSQL.DB, req.GatewayProfile.Id)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -1035,7 +1089,7 @@ func (n *NetworkServerAPI) UpdateGatewayProfile(ctx context.Context, req *ns.Upd
 
 // DeleteGatewayProfile deletes the gateway-profile matching a given id.
 func (n *NetworkServerAPI) DeleteGatewayProfile(ctx context.Context, req *ns.DeleteGatewayProfileRequest) (*ns.DeleteGatewayProfileResponse, error) {
-	if err := storage.DeleteGatewayProfile(config.C.PostgreSQL.DB, req.GatewayProfileID); err != nil {
+	if err := storage.DeleteGatewayProfile(config.C.PostgreSQL.DB, req.Id); err != nil {
 		return nil, errToRPCError(err)
 	}
 
@@ -1049,7 +1103,7 @@ func (n *NetworkServerAPI) CreateDeviceQueueItem(ctx context.Context, req *ns.Cr
 	}
 
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.Item.DevEUI)
+	copy(devEUI[:], req.Item.DevEui)
 
 	d, err := storage.GetDevice(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
@@ -1113,7 +1167,7 @@ func (n *NetworkServerAPI) CreateDeviceQueueItem(ctx context.Context, req *ns.Cr
 // FlushDeviceQueueForDevEUI flushes the device-queue for the given DevEUI.
 func (n *NetworkServerAPI) FlushDeviceQueueForDevEUI(ctx context.Context, req *ns.FlushDeviceQueueForDevEUIRequest) (*ns.FlushDeviceQueueForDevEUIResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	err := storage.FlushDeviceQueueForDevEUI(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
@@ -1126,7 +1180,7 @@ func (n *NetworkServerAPI) FlushDeviceQueueForDevEUI(ctx context.Context, req *n
 // GetDeviceQueueItemsForDevEUI returns all device-queue items for the given DevEUI.
 func (n *NetworkServerAPI) GetDeviceQueueItemsForDevEUI(ctx context.Context, req *ns.GetDeviceQueueItemsForDevEUIRequest) (*ns.GetDeviceQueueItemsForDevEUIResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	items, err := storage.GetDeviceQueueItemsForDevEUI(config.C.PostgreSQL.DB, devEUI)
 	if err != nil {
@@ -1136,7 +1190,7 @@ func (n *NetworkServerAPI) GetDeviceQueueItemsForDevEUI(ctx context.Context, req
 	var out ns.GetDeviceQueueItemsForDevEUIResponse
 	for i := range items {
 		qi := ns.DeviceQueueItem{
-			DevEUI:     items[i].DevEUI[:],
+			DevEui:     items[i].DevEUI[:],
 			FrmPayload: items[i].FRMPayload,
 			FCnt:       items[i].FCnt,
 			FPort:      uint32(items[i].FPort),
@@ -1155,7 +1209,7 @@ func (n *NetworkServerAPI) GetDeviceQueueItemsForDevEUI(ctx context.Context, req
 // device-session exists.
 func (n *NetworkServerAPI) GetNextDownlinkFCntForDevEUI(ctx context.Context, req *ns.GetNextDownlinkFCntForDevEUIRequest) (*ns.GetNextDownlinkFCntForDevEUIResponse, error) {
 	var devEUI lorawan.EUI64
-	copy(devEUI[:], req.DevEUI)
+	copy(devEUI[:], req.DevEui)
 
 	var resp ns.GetNextDownlinkFCntForDevEUIResponse
 
@@ -1210,14 +1264,16 @@ func (n *NetworkServerAPI) GetVersion(ctx context.Context, req *ns.GetVersionReq
 
 func gwToResp(gw storage.Gateway) *ns.GetGatewayResponse {
 	resp := ns.GetGatewayResponse{
-		Mac:         gw.MAC[:],
-		Name:        gw.Name,
-		Description: gw.Description,
-		CreatedAt:   gw.CreatedAt.Format(time.RFC3339Nano),
-		UpdatedAt:   gw.UpdatedAt.Format(time.RFC3339Nano),
-		Latitude:    gw.Location.Latitude,
-		Longitude:   gw.Location.Longitude,
-		Altitude:    gw.Altitude,
+		Gateway: &ns.Gateway{
+			Mac:         gw.MAC[:],
+			Name:        gw.Name,
+			Description: gw.Description,
+			Latitude:    gw.Location.Latitude,
+			Longitude:   gw.Location.Longitude,
+			Altitude:    gw.Altitude,
+		},
+		CreatedAt: gw.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt: gw.UpdatedAt.Format(time.RFC3339Nano),
 	}
 
 	if gw.FirstSeenAt != nil {
@@ -1229,7 +1285,7 @@ func gwToResp(gw storage.Gateway) *ns.GetGatewayResponse {
 	}
 
 	if gw.GatewayProfileID != nil {
-		resp.GatewayProfileID = *gw.GatewayProfileID
+		resp.Gateway.GatewayProfileId = *gw.GatewayProfileID
 	}
 
 	return &resp
@@ -1249,10 +1305,10 @@ func frameLogToUplinkAndDownlinkFrameLog(fl framelog.FrameLog) (*ns.UplinkFrameL
 			TxInfo: &ns.UplinkTXInfo{
 				Frequency: uint32(fl.UplinkFrame.TXInfo.Frequency),
 				DataRate: &ns.DataRate{
-					Modulation:   string(fl.UplinkFrame.TXInfo.DataRate.Modulation),
-					Bandwidth:    uint32(fl.UplinkFrame.TXInfo.DataRate.Bandwidth),
-					SpreadFactor: uint32(fl.UplinkFrame.TXInfo.DataRate.SpreadFactor),
-					Bitrate:      uint32(fl.UplinkFrame.TXInfo.DataRate.BitRate),
+					Modulation:      string(fl.UplinkFrame.TXInfo.DataRate.Modulation),
+					Bandwidth:       uint32(fl.UplinkFrame.TXInfo.DataRate.Bandwidth),
+					SpreadingFactor: uint32(fl.UplinkFrame.TXInfo.DataRate.SpreadFactor),
+					Bitrate:         uint32(fl.UplinkFrame.TXInfo.DataRate.BitRate),
 				},
 				CodeRate: fl.UplinkFrame.TXInfo.CodeRate,
 			},
@@ -1264,7 +1320,7 @@ func frameLogToUplinkAndDownlinkFrameLog(fl framelog.FrameLog) (*ns.UplinkFrameL
 				Mac:       fl.UplinkFrame.RXInfoSet[i].MAC[:],
 				Timestamp: fl.UplinkFrame.RXInfoSet[i].Timestamp,
 				Rssi:      int32(fl.UplinkFrame.RXInfoSet[i].RSSI),
-				LoRaSNR:   float32(fl.UplinkFrame.RXInfoSet[i].LoRaSNR),
+				LoraSnr:   float32(fl.UplinkFrame.RXInfoSet[i].LoRaSNR),
 				Board:     uint32(fl.UplinkFrame.RXInfoSet[i].Board),
 				Antenna:   uint32(fl.UplinkFrame.RXInfoSet[i].Antenna),
 			}
@@ -1274,7 +1330,7 @@ func frameLogToUplinkAndDownlinkFrameLog(fl framelog.FrameLog) (*ns.UplinkFrameL
 			}
 
 			if fl.UplinkFrame.RXInfoSet[i].TimeSinceGPSEpoch != nil {
-				rxInfo.TimeSinceGPSEpoch = time.Duration(*fl.UplinkFrame.RXInfoSet[i].TimeSinceGPSEpoch).String()
+				rxInfo.TimeSinceGpsEpoch = time.Duration(*fl.UplinkFrame.RXInfoSet[i].TimeSinceGPSEpoch).String()
 			}
 
 			up.RxInfo = append(up.RxInfo, &rxInfo)
@@ -1294,10 +1350,10 @@ func frameLogToUplinkAndDownlinkFrameLog(fl framelog.FrameLog) (*ns.UplinkFrameL
 				Frequency:   uint32(fl.DownlinkFrame.TXInfo.Frequency),
 				Power:       int32(fl.DownlinkFrame.TXInfo.Power),
 				DataRate: &ns.DataRate{
-					Modulation:   string(fl.DownlinkFrame.TXInfo.DataRate.Modulation),
-					Bandwidth:    uint32(fl.DownlinkFrame.TXInfo.DataRate.Bandwidth),
-					SpreadFactor: uint32(fl.DownlinkFrame.TXInfo.DataRate.SpreadFactor),
-					Bitrate:      uint32(fl.DownlinkFrame.TXInfo.DataRate.BitRate),
+					Modulation:      string(fl.DownlinkFrame.TXInfo.DataRate.Modulation),
+					Bandwidth:       uint32(fl.DownlinkFrame.TXInfo.DataRate.Bandwidth),
+					SpreadingFactor: uint32(fl.DownlinkFrame.TXInfo.DataRate.SpreadFactor),
+					Bitrate:         uint32(fl.DownlinkFrame.TXInfo.DataRate.BitRate),
 				},
 				CodeRate: fl.DownlinkFrame.TXInfo.CodeRate,
 				Board:    uint32(fl.DownlinkFrame.TXInfo.Board),
@@ -1311,13 +1367,13 @@ func frameLogToUplinkAndDownlinkFrameLog(fl framelog.FrameLog) (*ns.UplinkFrameL
 		}
 
 		if fl.DownlinkFrame.TXInfo.TimeSinceGPSEpoch != nil {
-			down.TxInfo.TimeSinceGPSEpoch = time.Duration(*fl.DownlinkFrame.TXInfo.TimeSinceGPSEpoch).String()
+			down.TxInfo.TimeSinceGpsEpoch = time.Duration(*fl.DownlinkFrame.TXInfo.TimeSinceGPSEpoch).String()
 		}
 
 		if fl.DownlinkFrame.TXInfo.IPol != nil {
-			down.TxInfo.IPol = *fl.DownlinkFrame.TXInfo.IPol
+			down.TxInfo.PolarizationInversion = *fl.DownlinkFrame.TXInfo.IPol
 		} else {
-			down.TxInfo.IPol = true
+			down.TxInfo.PolarizationInversion = true
 		}
 	}
 

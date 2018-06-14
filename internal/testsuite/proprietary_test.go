@@ -59,12 +59,12 @@ func TestSendProprietaryPayloadScenarios(t *testing.T) {
 				{
 					Name: "send proprietary payload",
 					SendProprietaryPayloadRequest: ns.SendProprietaryPayloadRequest{
-						MacPayload:  []byte{1, 2, 3, 4},
-						Mic:         []byte{5, 6, 7, 8},
-						GatewayMACs: [][]byte{{8, 7, 6, 5, 4, 3, 2, 1}},
-						IPol:        true,
-						Frequency:   868100000,
-						Dr:          5,
+						MacPayload:            []byte{1, 2, 3, 4},
+						Mic:                   []byte{5, 6, 7, 8},
+						GatewayMacs:           [][]byte{{8, 7, 6, 5, 4, 3, 2, 1}},
+						PolarizationInversion: true,
+						Frequency:             868100000,
+						Dr:                    5,
 					},
 					ExpectedTXInfo: gw.TXInfo{
 						MAC:         lorawan.EUI64{8, 7, 6, 5, 4, 3, 2, 1},

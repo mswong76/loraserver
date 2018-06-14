@@ -4,8 +4,8 @@ package ns;
 
 import "profiles.proto";
 
-// NetworkServer is the network-server service.
-service NetworkServer {
+// NetworkServerService provides the network-server API methods.
+service NetworkServerService {
     // CreateServiceProfile creates the given service-profile.
     rpc CreateServiceProfile(CreateServiceProfileRequest) returns (CreateServiceProfileResponse) {}
 
@@ -172,239 +172,247 @@ enum Region {
 
 
 message CreateServiceProfileRequest {
-    ServiceProfile serviceProfile = 1;
+	// Service-profile object to create.
+    ServiceProfile service_profile = 1;
 }
 
 message CreateServiceProfileResponse {
-    string serviceProfileID = 1;
+	// ID of the created service-profile.
+    string id = 1;
 }
 
 message GetServiceProfileRequest {
-    string serviceProfileID = 1;
+	// ID of the service-profile.
+    string id = 1;
 }
 
 message GetServiceProfileResponse {
-    ServiceProfile serviceProfile = 1;
-    string createdAt = 2;
-    string updatedAt = 3;
+	// Service-profile object.
+    ServiceProfile service_profile = 1;
+
+	// Created at timestamp.
+    string created_at = 2;
+
+	// Last update timestamp.
+    string updated_at = 3;
 }
 
 message UpdateServiceProfileRequest {
-    ServiceProfile serviceProfile = 1;
+	// Service-profile object to update.
+    ServiceProfile service_profile = 1;
 }
 
 message UpdateServiceProfileResponse {}
 
 message DeleteServiceProfileRequest {
-    string serviceProfileID = 1;
+	// ID of the service-profile.
+    string id = 1;
 }
 
 message DeleteServiceProfileResponse {}
 
-message RoutingProfile {
-	string routingProfileID = 1;
-    string asID = 2;
-}
 
 message CreateRoutingProfileRequest {
-    RoutingProfile routingProfile = 1;
+	// Routing-profile object to create.
+    RoutingProfile routing_profile = 1;
 
-    // ca certificate for connecting to lora-app-server
-    string caCert = 2;
-
-    // tls certificate for connecting to lora-app-server
-    string tlsCert = 3;
-
-    // tls key for connecting to lora-app-server
-    string tlsKey = 4;
 }
 
 message CreateRoutingProfileResponse {
-    string routingProfileID = 1;
+	// ID of the created routing-profile.
+    string id = 1;
 }
 
 message GetRoutingProfileRequest {
-    string routingProfileID = 1;
+	// ID of the routing-profile.
+    string id = 1;
 }
 
 message GetRoutingProfileResponse {
-    RoutingProfile routingProfile = 1;
+	// Routing-profile object.
+    RoutingProfile routing_profile = 1;
+
+	// Created at timestamp.
     string createdAt = 2;
+
+	// Last update timestamp.
     string updatedAt = 3;
-
-    // ca certificate for connecting to lora-app-server
-    string caCert = 4;
-
-    // tls certificate for connecting to lora-app-server
-    string tlsCert = 5;
 }
 
 message UpdateRoutingProfileRequest {
-    RoutingProfile routingProfile = 1;
-
-    // ca certificate for connecting to lora-app-server
-    string caCert = 2;
-
-    // tls certificate for connecting to lora-app-server
-    string tlsCert = 3;
-
-    // tls key for connecting to lora-app-server
-    string tlsKey = 4;
+	// Routing-profile object to update.
+    RoutingProfile routing_profile = 1;
 }
 
 message UpdateRoutingProfileResponse {}
 
 message DeleteRoutingProfileRequest {
-    string routingProfileID = 1;
+	// Routing-profile ID.
+    string id = 1;
 }
 
 message DeleteRoutingProfileResponse {}
 
 message CreateDeviceProfileRequest {
-    DeviceProfile deviceProfile = 1;
+	// Device-profile object to create.
+    DeviceProfile device_profile = 1;
 }
 
 message CreateDeviceProfileResponse {
-    string deviceProfileID = 1;
+	// ID of the created device-profile.
+    string id = 1;
 }
 
 message GetDeviceProfileRequest {
-    string deviceProfileID = 1;
+	// Device-profile ID.
+    string id = 1;
 }
 
 message GetDeviceProfileResponse {
-    DeviceProfile deviceProfile = 1;
-    string createdAt = 2;
-    string updatedAt = 3;
+	// Device-profile object.
+    DeviceProfile device_profile = 1;
+
+	// Created at timestamp.
+    string created_at = 2;
+
+	// Last update timestamp.
+    string updated_at = 3;
 }
 
 message UpdateDeviceProfileRequest {
-    DeviceProfile deviceProfile = 1;
+	// Device-profile object to update.
+    DeviceProfile device_profile = 1;
 }
 
 message UpdateDeviceProfileResponse {}
 
 message DeleteDeviceProfileRequest {
-    string deviceProfileID = 1;
+	// Device-profile ID.
+    string id = 1;
 }
 
 message DeleteDeviceProfileResponse {}
 
 message Device {
-    bytes devEUI = 1;
-    string deviceProfileID = 2;
-    string serviceProfileID = 3;
-    string routingProfileID = 4;
-    bool skipFCntCheck = 5;
+	// DevEUI.
+    bytes dev_eui = 1;
+
+	// Device-profile ID.
+    string device_profile_id = 2;
+
+	// Service-profile ID.
+    string service_profile_id = 3;
+
+	// Routing-profile ID.
+    string routing_profile_id = 4;
+
+	// Skip frame-counter check.
+	// Note that turning this on is insecure and is intended for debugging only.
+    bool skip_f_cnt_check = 5;
 }
 
 message CreateDeviceRequest {
+	// Device object to create.
     Device device = 1;
 }
 
 message CreateDeviceResponse {}
 
 message GetDeviceRequest {
-    bytes devEUI = 1;
+	// DevEUI.
+    bytes dev_eui = 1;
 }
 
 message GetDeviceResponse {
+	// Device object.
     Device device = 1;
-    string createdAt = 2;
-    string updatedAt = 3;
+
+	// Created at timestamp.
+    string created_at = 2;
+
+	// Last update timestamp.
+    string updated_at = 3;
 }
 
 message UpdateDeviceRequest {
+	// Device object to update.
     Device device = 1;
 }
 
 message UpdateDeviceResponse {}
 
 message DeleteDeviceRequest {
-    bytes devEUI = 1;
+	// DevEUI.
+    bytes dev_eui = 1;
 }
 
 message DeleteDeviceResponse {}
 
-message ActivateDeviceRequest {
-    // Device EUI (8 bytes).
-    bytes devEUI = 1;
+message DeviceActivation {
+    // DevEUI.
+    bytes dev_eui = 1;
 
-    // The address of the device (4 bytes).
-    bytes devAddr = 2;
+    // Device address (DevAddr).
+    bytes dev_addr = 2;
 
     // SNwkSIntKey (serving network-server session integrity key).
-    bytes sNwkSIntKey = 3;
+    bytes s_nwk_s_int_key = 3;
 
     // FNwkSIntKey (forwarding network-server session integrity key).
-    bytes fNwkSIntKey = 7;
+    bytes f_nwk_s_int_key = 4;
 
     // NwkSEncKey (network-server session encryption key).
-    bytes nwkSEncKey = 8;
+    bytes nwk_s_enc_key = 5;
 
     // The next expected uplink frame-counter.
-    uint32 fCntUp = 4;
+    uint32 f_cnt_up = 6;
 
     // The network frame-counter used for the next downlink frame.
-    uint32 nFCntDown = 5;
+    uint32 n_f_cnt_down = 7;
 
     // The application frame-counter used for the next downlink frame (LoRaWAN 1.1).
-    uint32 aFCntDown = 9;
+    uint32 a_f_cnt_down = 8;
 
     // Skip frame-counter checks (this is insecure, but could be helpful for debugging).
-    bool skipFCntCheck = 6;
+    bool skip_f_cnt_check = 9;
+}
+
+message ActivateDeviceRequest {
+	// Device-activation to activate a device (ABP).
+	DeviceActivation device_activation = 1;
 }
 
 message ActivateDeviceResponse {}
 
 message DeactivateDeviceRequest {
     // Device EUI (8 bytes).
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message DeactivateDeviceResponse {}
 
 message GetDeviceActivationRequest {
     // Device EUI (8 bytes).
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message GetDeviceActivationResponse {
-    // The address of the device (4 bytes).
-    bytes devAddr = 1;
-
-    // SNwkSIntKey (serving network-server session integrity key).
-    bytes sNwkSIntKey = 2;
-
-    // FNwkSIntKey (forwarding network-server session integrity key).
-    bytes fNwkSIntKey = 6;
-
-    // NwkSEncKey (network-server session encryption key).
-    bytes nwkSEncKey = 7;
-
-    // The next expected uplink frame-counter.
-    uint32 fCntUp = 3;
-
-    // The network frame-counter used for the next downlink frame.
-    uint32 nFCntDown = 4;
-
-    // The application frame-counter used for the next downlink frame (LoRaWAN 1.1).
-    uint32 aFCntDown = 8;
-
-    // Skip frame-counter checks (this is insecure, but could be helpful for debugging).
-    bool skipFCntCheck = 5;
+    // Device-activation object.
+	DeviceActivation device_activation = 1;
 }
 
 
 message GetRandomDevAddrRequest {}
 
 message GetRandomDevAddrResponse {
-    bytes devAddr = 1;
+	// Random device address (DevAddr).
+	// Note that this includes the NetID prefix of the network-server.
+    bytes dev_addr = 1;
 }
 
 message CreateMACCommandQueueItemRequest {
-    // DevEUI of the node.
-    bytes devEUI = 1;
+    // DevEUI EUI (8 bytes).
+    bytes dev_eui = 1;
 
     // Command identifier (specified by the LoRaWAN specs).
     uint32 cid = 4;
@@ -418,17 +426,17 @@ message CreateMACCommandQueueItemResponse {}
 
 message SendProprietaryPayloadRequest {
 	// MACPayload of the proprietary LoRaWAN frame.
-	bytes macPayload = 1;
+	bytes mac_payload = 1;
 
 	// MIC of the proprietary LoRaWAN frame (must be 4 bytes).
 	bytes mic = 2;
 
 	// Gateway MAC address(es) to use for transmitting the LoRaWAN frame.
-	repeated bytes gatewayMACs = 3;
+	repeated bytes gateway_macs = 3;
 
 	// Set to true for sending as a gateway, or false for sending as a node.
 	// In the latter case the frame will be received by other gateways.
-	bool iPol = 4;
+	bool polarization_inversion = 4;
 
 	// Frequency (Hz) to use for the transmission.
 	uint32 frequency = 5;
@@ -439,7 +447,7 @@ message SendProprietaryPayloadRequest {
 
 message SendProprietaryPayloadResponse {}
 
-message CreateGatewayRequest {
+message Gateway {
     // MAC address of the gateway.
     bytes mac = 1;
 
@@ -459,7 +467,12 @@ message CreateGatewayRequest {
     double altitude = 6;
 
     // ID of the gateway-profile (optional).
-    string gatewayProfileID = 8;
+    string gateway_profile_id = 7;
+}
+
+message CreateGatewayRequest {
+	// Gateway object to create.
+	Gateway gateway = 1;
 }
 
 message CreateGatewayResponse {}
@@ -470,61 +483,25 @@ message GetGatewayRequest {
 }
 
 message GetGatewayResponse {
-    // MAC address of the gateway.
-    bytes mac = 1;
+	// Gateway object.
+	Gateway gateway = 1;
 
-    // Name of the gateway.
-    string name = 2;
+	// Created at timestamp.
+	string created_at = 2;
 
-    // Description for the gateway.
-    string description = 3;
+	// Last update timestamp.
+	string updated_at = 3;
 
-    // Latitude of the gateway.
-    double latitude = 4;
+	// First seen timestamp.
+	string first_seen_at = 4;
 
-    // Longitude of the gateway.
-    double longitude = 5;
-
-    // Altitude of the gateway.
-    double altitude = 6;
-
-    // The timestamp when the gateway was created.
-    string createdAt = 7;
-
-    // The timestamp when the gateway was last updated.
-    string updatedAt = 8;
-
-    // The timestamp when the gateway was first seen.
-    string firstSeenAt = 9;
-
-    // The timestamp when the gateway was last seen.
-    string lastSeenAt = 10;
-
-    // ID of the gateway-profile (optional).
-    string gatewayProfileID = 12;
+	// Last seen timestamp.
+	string last_seen_at = 5;
 }
 
 message UpdateGatewayRequest {
-    // MAC address of the gateway.
-    bytes mac = 1;
-
-    // Name of the gateway.
-    string name = 2;
-
-    // Description for the gateway.
-    string description = 3;
-
-    // Latitude of the gateway.
-    double latitude = 4;
-
-    // Longitude of the gateway.
-    double longitude = 5;
-
-    // Altitude of the gateway.
-    double altitude = 6;
-
-    // ID of the gateway-profile.
-    string gatewayProfileID = 8;
+	// Gateway object to update.
+	Gateway gateway = 1;
 }
 
 message UpdateGatewayResponse {}
@@ -552,16 +529,16 @@ message GatewayStats {
     string timestamp = 1;
 
     // Packets received by the gateway.
-    int32 rxPacketsReceived = 2;
+    int32 rx_packets_received = 2;
 
     // Packets received by the gateway that passed the CRC check.
-    int32 rxPacketsReceivedOK = 3;
+    int32 rx_packets_received_ok = 3;
 
     // Packets received by the gateway for transmission.
-    int32 txPacketsReceived = 4;
+    int32 tx_packets_received = 4;
 
     // Packets transmitted by the gateway.
-    int32 txPacketsEmitted = 5;
+    int32 tx_packets_emitted = 5;
 }
 
 message GetGatewayStatsRequest {
@@ -572,10 +549,10 @@ message GetGatewayStatsRequest {
     AggregationInterval interval = 2;
 
     // Timestamp to start from.
-    string startTimestamp = 3;
+    string start_timestamp = 3;
 
     // Timestamp until to get from.
-    string endTimestamp = 4;
+    string end_timestamp = 4;
 }
 
 message GetGatewayStatsResponse {
@@ -584,16 +561,16 @@ message GetGatewayStatsResponse {
 
 message DeviceQueueItem {
     // DevEUI of the device.
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 
     // The encrypted FRMPayload bytes.
-    bytes frmPayload = 2;
+    bytes frm_payload = 2;
 
     // The FCnt of the payload.
-    uint32 fCnt = 3;
+    uint32 f_cnt = 3;
 
     // The FPort of the payload.
-    uint32 fPort = 4;
+    uint32 f_port = 4;
 
     // When set to true, LoRa Server will wait for the device to ack the
     // received frame.
@@ -608,14 +585,14 @@ message CreateDeviceQueueItemResponse {}
 
 message FlushDeviceQueueForDevEUIRequest {
     // DevEUI of the device.
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message FlushDeviceQueueForDevEUIResponse {}
 
 message GetDeviceQueueItemsForDevEUIRequest {
     // DevEUI of the device.
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message GetDeviceQueueItemsForDevEUIResponse {
@@ -624,12 +601,12 @@ message GetDeviceQueueItemsForDevEUIResponse {
 
 message GetNextDownlinkFCntForDevEUIRequest {
     // DevEUI of the device.
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message GetNextDownlinkFCntForDevEUIResponse {
     // The frame-counter to use.
-    uint32 fCnt = 1;
+    uint32 f_cnt = 1;
 }
 
 message StreamFrameLogsForGatewayRequest {
@@ -639,23 +616,23 @@ message StreamFrameLogsForGatewayRequest {
 
 message StreamFrameLogsForGatewayResponse {
     // Contains zero or one uplink frame.
-    repeated UplinkFrameLog uplinkFrames = 1;
+    repeated UplinkFrameLog uplink_frames = 1;
 
     // Contains zero or one downlink frame.
-    repeated DownlinkFrameLog downlinkFrames = 2;
+    repeated DownlinkFrameLog downlink_frames = 2;
 }
 
 message StreamFrameLogsForDeviceRequest {
     // DevEUI of the device.
-    bytes devEUI = 1;
+    bytes dev_eui = 1;
 }
 
 message StreamFrameLogsForDeviceResponse {
     // Contains zero or one uplink frame.
-    repeated UplinkFrameLog uplinkFrames = 1;
+    repeated UplinkFrameLog uplink_frames = 1;
 
     // Contains zero or one downlink frame.
-    repeated DownlinkFrameLog downlinkFrames = 2;
+    repeated DownlinkFrameLog downlink_frames = 2;
 }
 
 message DataRate {
@@ -665,8 +642,8 @@ message DataRate {
     // Bandwidth (in kHz).
     uint32 bandwidth = 2;
 
-    // Used spread-factor.
-    uint32 spreadFactor = 3;
+    // Used spreading-factor.
+    uint32 spreading_factor = 3;
 
     // Bitrate (used for FSK modulation).
     uint32 bitrate = 4;
@@ -678,10 +655,10 @@ message UplinkTXInfo {
     uint32 frequency = 1;
 
     // Data-rate.
-    DataRate dataRate = 2;
+    DataRate data_rate = 2;
 
     // Code rate.
-    string codeRate = 3;
+    string code_rate = 3;
 }
 
 message UplinkRXInfo {
@@ -692,7 +669,7 @@ message UplinkRXInfo {
     string time = 2;
 
     // Time when the frame was received as time since GPS epoch (if available).
-    string timeSinceGPSEpoch = 3;
+    string time_since_gps_epoch = 3;
 
     // Gateway internal timestamp.
     uint32 timestamp = 4;
@@ -701,7 +678,7 @@ message UplinkRXInfo {
     int32 rssi = 5;
 
     // LoRa SNR.
-    float loRaSNR = 6;
+    float lora_snr = 6;
 
     // The board identifier that received the uplink frame.
     uint32 board = 7;
@@ -712,13 +689,13 @@ message UplinkRXInfo {
 
 message UplinkFrameLog {
     // TX information of the uplink.
-    UplinkTXInfo txInfo = 1;
+    UplinkTXInfo tx_info = 1;
 
     // RX information of the uplink.
-    repeated UplinkRXInfo rxInfo = 2;
+    repeated UplinkRXInfo rx_info = 2;
 
     // LoRaWAN PHYPayload.
-    bytes phyPayload = 3;
+    bytes phy_payload = 3;
 }
 
 message DownlinkTXInfo {
@@ -729,7 +706,7 @@ message DownlinkTXInfo {
     bool immediately = 2;
 
     // Transmit frame at the given time since GPS epoch.
-    string timeSinceGPSEpoch = 3;
+    string time_since_gps_epoch = 3;
 
     // Transmit the frame at the given gateway internal timestamp.
     uint32 timestamp = 4;
@@ -741,13 +718,13 @@ message DownlinkTXInfo {
     int32 power = 6;
 
     // Data-rate.
-    DataRate dataRate = 7;
+    DataRate data_rate = 7;
 
     // Code rate.
-    string codeRate = 8;
+    string code_rate = 8;
 
     // Lora modulation polarization inversion.
-    bool iPol = 9;
+    bool polarization_inversion = 9;
 
     // The board identifier that received the uplink frame.
     uint32 board = 10;
@@ -758,10 +735,10 @@ message DownlinkTXInfo {
 
 message DownlinkFrameLog {
     // TX information of the downlink.
-    DownlinkTXInfo txInfo = 1;
+    DownlinkTXInfo tx_info = 1;
 
     // LoRaWAN PHYPayload.
-    bytes phyPayload = 2;
+    bytes phy_payload = 2;
 }
 
 message GetVersionRequest {}
@@ -775,7 +752,7 @@ message GetVersionResponse {
 }
 message GatewayProfile {
     // ID of the gateway-profile.
-    string gatewayProfileID = 1;
+    string id = 1;
 
     // Default channels (channels specified by the LoRaWAN Regional Parameters
     // specification) enabled for this configuration.
@@ -783,7 +760,7 @@ message GatewayProfile {
 
     // Extra channels added to the channel-configuration (in case the LoRaWAN
     // region supports adding custom channels).
-    repeated GatewayProfileExtraChannel extraChannels = 3;
+    repeated GatewayProfileExtraChannel extra_channels = 3;
 }
 
 message GatewayProfileExtraChannel {
@@ -800,38 +777,45 @@ message GatewayProfileExtraChannel {
     uint32 bitrate = 4;
 
     // Spreading factors (in case of LoRa modulation).
-    repeated uint32 spreadingFactors = 5;
+    repeated uint32 spreading_factors = 5;
 }
 
 message CreateGatewayProfileRequest {
-    GatewayProfile gatewayProfile = 1;
+	// Gateway-profile object to create.
+    GatewayProfile gateway_profile = 1;
 }
 
 message CreateGatewayProfileResponse {
     // ID of the create configuration object.
-    string gatewayProfileID = 1;
+    string id = 1;
 }
 
 message GetGatewayProfileRequest {
-    // ID of the gateway-profile.
-    string gatewayProfileID = 1;
+    // Gateway-profile ID.
+    string id = 1;
 }
 
 message GetGatewayProfileResponse {
-    GatewayProfile gatewayProfile = 1;
-    string createdAt = 2;
-    string updatedAt = 3;
+	// Gateway-profile object.
+    GatewayProfile gateway_profile = 1;
+
+	// Created at timestamp.
+    string created_at = 2;
+
+	// Last update timestamp.
+    string updated_at = 3;
 }
 
 message UpdateGatewayProfileRequest {
-    GatewayProfile gatewayProfile = 1;
+	// Gateway-profile object to update.
+    GatewayProfile gateway_profile = 1;
 }
 
 message UpdateGatewayProfileResponse {}
 
 message DeleteGatewayProfileRequest {
-    // ID of the gateway-profile.
-    string gatewayProfileID = 1;
+	// Gateway-profile ID.
+    string id = 1;
 }
 
 message DeleteGatewayProfileResponse {}
